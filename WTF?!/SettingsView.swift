@@ -80,17 +80,21 @@ struct SettingsView: View {
                         }
                     }
                     .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("Gotowe") { focusedField = nil }
+                        ToolbarItem(placement: .keyboard) {
+                            HStack {
+                                Spacer()
+                                Button("Gotowe") { focusedField = nil }
+                            }
                         }
                     }
                 }
             }
             .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Gotowe") { focusedField = nil }
+                ToolbarItem(placement: .keyboard) {
+                    HStack {
+                        Spacer()
+                        Button("Gotowe") { focusedField = nil }
+                    }
                 }
             }
             .safeAreaInset(edge: .bottom) {
