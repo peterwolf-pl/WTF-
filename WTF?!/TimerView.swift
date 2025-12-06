@@ -35,6 +35,9 @@ struct TimerView: View {
     @State private var pendingSessionStart: Date?
     @State private var pendingSessionEnd: Date?
 
+    private let runningFlagKey = "workTimer.isRunning"
+    private let startDateKey = "workTimer.startDate"
+
     var body: some View {
         VStack(spacing: 24) {
             // Live clock display
@@ -110,10 +113,10 @@ struct TimerView: View {
         }
         .padding()
         .onAppear {
-            // If the app terminated while running, we could restore state from a persisted flag in the future.
+            restoreRunningStateIfNeeded()
         }
-        .sheet(isPresented: $showingNoteSheet) {
-            NavigationStack {
+            .sheet(isPresented: $showingNoteSheet) {
+                NavigationStack {
                 Form {
                     Section("Notatka do sesji") {
                         TextField("Czym się zajmowałeś?", text: $pendingNote, axis: .vertical)
@@ -143,15 +146,16 @@ struct TimerView: View {
                 }
                 .navigationTitle("Zapisz sesję")
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Anuluj") {
-                            // Discard pending session
-                            pendingSessionStart = nil
-                            pendingSessionEnd = nil
-                            pendingNote = ""
-                            showingNoteSheet = false
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Anuluj") {
+                                // Discard pending session
+                                pendingSessionStart = nil
+                                pendingSessionEnd = nil
+                                pendingNote = ""
+                                showingNoteSheet = false
+                                clearRunningState()
+                            }
                         }
-                    }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Zapisz") { savePendingSession() }
                             .disabled(pendingSessionStart == nil || pendingSessionEnd == nil)
@@ -164,6 +168,7 @@ struct TimerView: View {
     private func handleToggle() {
         if isRunning {
             // Stop: prepare to save session, then ask for a note
+            clearRunningState()
             let end = Date()
             let start = startDate ?? end
             let duration = max(Int(end.timeIntervalSince(start)), 0)
@@ -192,6 +197,7 @@ struct TimerView: View {
             // Start
             startDate = Date()
             isRunning = true
+            persistRunningState()
         }
     }
 
@@ -215,10 +221,32 @@ struct TimerView: View {
         pendingSessionEnd = nil
         pendingNote = ""
         showingNoteSheet = false
+        clearRunningState()
         Task { await refreshTodaysTotal() }
     }
 
     // MARK: - Helpers
+
+    private func persistRunningState() {
+        UserDefaults.standard.setValue(true, forKey: runningFlagKey)
+        UserDefaults.standard.setValue(startDate?.timeIntervalSince1970, forKey: startDateKey)
+    }
+
+    private func clearRunningState() {
+        UserDefaults.standard.removeObject(forKey: runningFlagKey)
+        UserDefaults.standard.removeObject(forKey: startDateKey)
+    }
+
+    private func restoreRunningStateIfNeeded() {
+        let defaults = UserDefaults.standard
+        let wasRunning = defaults.bool(forKey: runningFlagKey)
+        if wasRunning {
+            let storedTime = defaults.double(forKey: startDateKey)
+            let restoredDate = Date(timeIntervalSince1970: storedTime)
+            startDate = storedTime == 0 ? Date() : restoredDate
+            isRunning = true
+        }
+    }
 
     private func refreshTodaysTotal() async {
         // Compute total seconds for sessions completed today
