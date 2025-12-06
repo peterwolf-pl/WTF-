@@ -7,6 +7,12 @@ struct SettingsView: View {
 
     @State private var newTaskTitle: String = ""
     @State private var editTask: TaskTemplate?
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case addTitle
+        case editTitle
+    }
 
     var body: some View {
         NavigationStack {
@@ -37,6 +43,7 @@ struct SettingsView: View {
                     HStack {
                         TextField("Nowe zadanie", text: $newTaskTitle)
                             .textInputAutocapitalization(.sentences)
+                            .focused($focusedField, equals: .addTitle)
                         Button("Dodaj", action: add)
                             .disabled(newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
@@ -53,6 +60,7 @@ struct SettingsView: View {
                                 set: { newTaskTitle = $0 }
                             ))
                                 .textInputAutocapitalization(.sentences)
+                                .focused($focusedField, equals: .editTitle)
                         }
                     }
                     .navigationTitle("Edycja")
@@ -71,6 +79,18 @@ struct SettingsView: View {
                             .disabled(newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Gotowe") { focusedField = nil }
+                        }
+                    }
+                }
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Gotowe") { focusedField = nil }
                 }
             }
             .safeAreaInset(edge: .bottom) {
